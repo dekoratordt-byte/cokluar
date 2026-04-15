@@ -2,111 +2,191 @@
 <html lang="tr">
 <head>
     <meta charset="utf-8">
-    <title>HY AR - Çoklu Model Yönetimi</title>
+    <title>HY AR - Profesyonel Çoklu Model</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
     
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; }
-        #ui-overlay {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            z-index: 100; display: flex; gap: 10px; pointer-events: none;
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', sans-serif; }
+        
+        /* Arayüz Konteynırı */
+        #ui-container {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 999;
+            pointer-events: none;
         }
+
+        /* Seçim Butonları */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            pointer-events: auto;
+        }
+
         .btn {
-            background: #007bff; color: white; border: none; padding: 12px 20px;
-            border-radius: 25px; font-weight: bold; pointer-events: auto; cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            background: rgba(0, 123, 255, 0.9);
+            color: white;
+            border: 2px solid #fff;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        #status {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.7); color: white; padding: 10px 20px;
-            border-radius: 20px; font-size: 14px; z-index: 100; pointer-events: none;
+
+        .btn.active {
+            background: #28a745;
+            transform: scale(1.1);
+        }
+
+        /* Bilgi Paneli */
+        #info-box {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            z-index: 999;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* Başlangıç Ekranı */
+        #start-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
         }
     </style>
 </head>
 
 <body>
 
-    <div id="status">Kamerayı zemine tutun ve modelleri yerleştirin</div>
-    
-    <div id="ui-overlay">
-        <button class="btn" onclick="selectModel(1)">Model 1</button>
-        <button class="btn" onclick="selectModel(2)">Model 2</button>
-        <button class="btn" onclick="selectModel(3)">Model 3</button>
+    <div id="start-overlay">
+        <h2 style="color:#333">HY AR Deneyimi</h2>
+        <p style="color:#666">3 Modeli de aynı anda göreceksiniz.</p>
+        <button class="btn" style="padding: 20px 40px; font-size: 18px;" onclick="startExperience()">DENEYİMİ BAŞLAT</button>
+    </div>
+
+    <div id="info-box">Model 1 Seçili: Hareket ettirmek için ekranda sürükleyin.</div>
+
+    <div id="ui-container">
+        <div class="button-group">
+            <button id="btn1" class="btn active" onclick="selectModel(1)">Model 1</button>
+            <button id="btn2" class="btn" onclick="selectModel(2)">Model 2</button>
+            <button id="btn3" class="btn" onclick="selectModel(3)">Model 3</button>
+        </div>
     </div>
 
     <a-scene 
-        webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #ui-overlay;"
-        embedded
-        gesture-detector
-        renderer="colorManagement: true;">
+        webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #ui-container;"
+        renderer="colorManagement: true; antialias: true; alpha: true;"
+        vr-mode-ui="enabled: false"
+        ar-mode-ui="enabled: true">
 
         <a-assets>
-            <a-asset-item id="model1" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model.glb"></a-asset-item>
-            <a-asset-item id="model2" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model2.glb"></a-asset-item>
-            <a-asset-item id="model3" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model1.glb"></a-asset-item>
+            <a-asset-item id="Model1" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model.glb"></a-asset-item>
         </a-assets>
+<a-assets>
+            <a-asset-item id="Model2" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model1.glb"></a-asset-item>
+        </a-assets>
+        <a-assets>
+            <a-asset-item id="Model3" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model2.glb"></a-asset-item>
+        </a-assets>
+        <a-entity light="type: ambient; intensity: 1;"></a-entity>
+        <a-entity light="type: directional; intensity: 0.8;" position="1 4 3"></a-entity>
 
-        <a-entity light="type: ambient; intensity: 0.8;"></a-entity>
-        <a-entity light="type: directional; intensity: 0.6;" position="1 2 1"></a-entity>
+        <a-entity camera look-controls wasd-controls position="0 1.6 0"></a-entity>
 
-        <a-entity camera position="0 1.6 0"></a-entity>
-        
-        <a-entity id="wrapper1" position="0 0 -2" visible="true">
-            <a-entity id="target1" gltf-model="#model1" scale="0.5 0.5 0.5" 
-                      class="clickable" gesture-handler></a-entity>
+        <a-entity id="model-container-1" position="-1 0 -3">
+            <a-entity id="obj1" gltf-model="#Model1" scale="0.5 0.5 0.5" class="selectable"></a-entity>
         </a-entity>
 
-        <a-entity id="wrapper2" position="1 0 -2" visible="true">
-            <a-entity id="target2" gltf-model="#model2" scale="0.5 0.5 0.5" 
-                      class="clickable" gesture-handler></a-entity>
+        <a-entity id="model-container-2" position="0 0 -3">
+            <a-entity id="obj2" gltf-model="#Model2" scale="0.5 0.5 0.5" class="selectable"></a-entity>
         </a-entity>
 
-        <a-entity id="wrapper3" position="-1 0 -2" visible="true">
-            <a-entity id="target3" gltf-model="#model3" scale="0.5 0.5 0.5" 
-                      class="clickable" gesture-handler></a-entity>
+        <a-entity id="model-container-3" position="1 0 -3">
+            <a-entity id="obj3" gltf-model="#Model3" scale="0.5 0.5 0.5" class="selectable"></a-entity>
         </a-entity>
 
     </a-scene>
 
     <script>
-        let selectedId = 1;
+        let currentSelected = 1;
 
-        // Model Seçme Fonksiyonu
-        function selectModel(id) {
-            selectedId = id;
-            document.getElementById('status').innerText = "Model " + id + " seçildi. Hareket ettirebilirsiniz.";
-            
-            // Seçili olmayanı görsel olarak belirtmek istersen burada opacity vs. değiştirebilirsin
+        function startExperience() {
+            document.getElementById('start-overlay').style.display = 'none';
+            // Kullanıcıyı bilgilendirme
+            document.getElementById('info-box').innerText = "AR butonuna basarak kamerayı açın.";
         }
 
-        // Basit Sürükle-Bırak ve Scale Mantığı (A-Frame Custom Script)
-        AFRAME.registerComponent('gesture-handler', {
-            schema: { enabled: {default: true} },
-            init: function () {
-                this.handleScale = this.handleScale.bind(this);
-                this.handleRotation = this.handleRotation.bind(this);
-                this.isVisible = false;
-                
-                // Dokunma ile seçme ve hareket ettirme işlemleri buraya entegre edilir
-                window.addEventListener('touchstart', (e) => {
-                    // Seçili modele göre işlem yap
-                });
-            },
-            handleScale: function (event) {
-                if (this.data.enabled) {
-                    let s = this.el.getAttribute('scale');
-                    this.el.setAttribute('scale', {
-                        x: s.x + event.detail.spreadChange,
-                        y: s.y + event.detail.spreadChange,
-                        z: s.z + event.detail.spreadChange
-                    });
-                }
-            }
+        function selectModel(id) {
+            currentSelected = id;
+            
+            // Buton görsellerini güncelle
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn' + id).classList.add('active');
+            
+            document.getElementById('info-box').innerText = "Model " + id + " Seçildi. Taşımak için dokunun.";
+        }
+
+        // Dokunmatik Kontroller (Basit Kaydırma Mantığı)
+        let isDragging = false;
+        let previousMouseX = 0;
+        let previousMouseY = 0;
+
+        window.addEventListener('touchstart', e => {
+            isDragging = true;
+            previousMouseX = e.touches[0].clientX;
+            previousMouseY = e.touches[0].clientY;
         });
+
+        window.addEventListener('touchmove', e => {
+            if (!isDragging) return;
+
+            let deltaX = e.touches[0].clientX - previousMouseX;
+            let deltaY = e.touches[0].clientY - previousMouseY;
+
+            let targetModel = document.getElementById('model-container-' + currentSelected);
+            let pos = targetModel.getAttribute('position');
+
+            // Hassasiyeti ayarla (0.01)
+            targetModel.setAttribute('position', {
+                x: pos.x + (deltaX * 0.01),
+                y: pos.y,
+                z: pos.z + (deltaY * 0.01)
+            });
+
+            previousMouseX = e.touches[0].clientX;
+            previousMouseY = e.touches[0].clientY;
+        });
+
+        window.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Çimdikleme (Pinch) ile Scale (Büyütme/Küçültme) Mantığı için basit bir ekleme yapılabilir
     </script>
 </body>
 </html>
