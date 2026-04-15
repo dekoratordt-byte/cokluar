@@ -69,23 +69,24 @@
             pointer-events: none;
         }
 
-        /* iOS Özel AR Butonu */
+        /* iOS AR Butonu (Sağ Altta Çıkacak) */
         #ios-ar-btn {
-            display: none; /* Varsayılan olarak gizli */
-            background: #ffffff; 
-            border: 2px solid #000000; 
-            height: 35px; 
-            border-radius: 20px; 
-            padding: 0 15px; 
-            color: #000000; 
-            font-family: sans-serif; 
-            font-weight: bold; 
-            text-decoration: none; 
-            line-height: 31px; /* Dikey hizalama için */
-            pointer-events: auto; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
-            font-size: 14px; 
-            box-sizing: border-box;
+            display: none; 
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            background: #000000;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            border-radius: 10px;
+            padding: 10px 15px;
+            font-family: sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            z-index: 10000;
+            pointer-events: auto;
+            cursor: pointer;
         }
     </style>
 
@@ -99,7 +100,6 @@
                     
                     obj.traverse((node) => {
                         if (node.isMesh && node.material) {
-                            // MeshLambertMaterial: Telefonu yormaz, 3D formu gösterir
                             const newMat = new THREE.MeshLambertMaterial({
                                 map: node.material.map,
                                 color: node.material.color,
@@ -123,11 +123,11 @@
         <button id="btn1" class="btn active" onclick="selectModel(1)"></button>
         <button id="btn2" class="btn" onclick="selectModel(2)"></button>
         <button id="btn3" class="btn" onclick="selectModel(3)"></button>
-        
-        <a id="ios-ar-btn" rel="ar" href="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model.usdz">🍎 AR (iOS)</a>
     </div>
     
     <div id="info-box">Sayfa Yüklendi. Önizlemedesiniz. AR için sağ alt butona basın.</div>
+    
+    <button id="ios-ar-btn" onclick="launchIOSAR()">AR ile Gör</button>
 
     <a-scene 
         webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #ui-overlay;"
@@ -136,13 +136,7 @@
         
         <a-assets>
             <a-asset-item id="glbModel" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model.glb"></a-asset-item>
-        </a-assets>
-
-        <a-assets>
             <a-asset-item id="glbModel2" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model1.glb"></a-asset-item>
-        </a-assets>
-                
-        <a-assets>
             <a-asset-item id="glbModel3" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model2.glb"></a-asset-item>
         </a-assets>
         
@@ -165,16 +159,32 @@
         let selectedModelId = 1;
         const infoBox = document.getElementById('info-box');
         
-        // iOS Cihaz Tespiti (iPhone, iPad vb.)
+        // iOS Cihaz Tespiti
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
         document.addEventListener("DOMContentLoaded", () => {
             if (isIOS) {
-                // Eğer cihaz Apple ise özel butonu göster ve bilgi kutusunu güncelle
-                document.getElementById('ios-ar-btn').style.display = 'inline-block';
-                infoBox.innerText = "Apple cihazı algılandı. AR için 🍎 butonuna basın.";
+                document.getElementById('ios-ar-btn').style.display = 'block';
+                infoBox.innerText = "Önizlemedesiniz. AR için 'AR ile Gör'e basın.";
             }
         });
+
+        // iOS İçin Dinamik AR Tetikleyici
+        window.launchIOSAR = function() {
+            // Aktif modelin GLB linkini bul ve uzantısını dinamik olarak usdz yap
+            let currentAssetId = document.getElementById('model' + selectedModelId).getAttribute('gltf-model').replace('#', '');
+            let glbUrl = document.getElementById(currentAssetId).getAttribute('src');
+            let usdzUrl = glbUrl.replace('.glb', '.usdz');
+
+            // Arka planda Apple'ın AR Quick Look sistemine gönder
+            let a = document.createElement('a');
+            a.setAttribute('rel', 'ar');
+            a.setAttribute('href', usdzUrl);
+            a.appendChild(document.createElement('img')); 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
 
         let touchState = {
             scaling: false,
@@ -190,23 +200,18 @@
             selectedModelId = id;
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
             document.getElementById('btn' + id).classList.add('active');
-
+            
             if (isIOS) {
-                infoBox.innerText = "Model " + id + " Seçildi. AR'da görmek için 🍎 butonuna basın.";
-                
-                // Seçilen modele göre Apple USDZ linkini dinamik olarak değiştir
-                let usdzLink = "https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model.usdz";
-                if (id === 2) usdzLink = "https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model1.usdz";
-                if (id === 3) usdzLink = "https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model2.usdz";
-                document.getElementById('ios-ar-btn').href = usdzLink;
-
+                infoBox.innerText = "Model " + id + " Seçildi. AR'da görmek için butona basın.";
             } else {
                 infoBox.innerText = "Model " + id + " Seçildi. Zemini tarayıp dokunun.";
             }
         };
 
+        // --- DOKUNMATİK VE AR-HİT TEST KONTROLLERİ (HİÇ DEĞİŞTİRİLMEDİ) ---
+
         window.addEventListener('touchstart', (e) => {
-            if(e.target.closest('#ui-overlay')) return; 
+            if(e.target.closest('#ui-overlay') || e.target.closest('#ios-ar-btn')) return; 
 
             const activeModel = document.getElementById('model' + selectedModelId);
             let isVisible = activeModel.getAttribute('visible');
@@ -227,7 +232,7 @@
         }, {passive: false});
 
         window.addEventListener('touchmove', (e) => {
-            if(e.target.closest('#ui-overlay')) return;
+            if(e.target.closest('#ui-overlay') || e.target.closest('#ios-ar-btn')) return;
 
             const activeModel = document.getElementById('model' + selectedModelId);
             let isVisible = activeModel.getAttribute('visible');
