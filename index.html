@@ -7,6 +7,8 @@
     
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #f0f0f0; }
 
@@ -69,24 +71,34 @@
             pointer-events: none;
         }
 
-        /* iOS AR Butonu (Sağ Altta Çıkacak) */
+        /* Apple İçin Özel AR Butonu */
         #ios-ar-btn {
-            display: none; 
+            display: none; /* Sadece iOS'ta görünecek */
             position: fixed;
             bottom: 30px;
             right: 20px;
             background: #000000;
             color: #ffffff;
             border: 2px solid #ffffff;
-            border-radius: 10px;
-            padding: 10px 15px;
+            border-radius: 50px;
+            padding: 10px 20px;
             font-family: sans-serif;
             font-size: 14px;
             font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
             z-index: 10000;
             pointer-events: auto;
             cursor: pointer;
+        }
+
+        /* Hayalet Model-Viewer (Ekranda yer kaplamaz, arkada çalışır) */
+        #ghost-viewer {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
         }
     </style>
 
@@ -126,8 +138,9 @@
     </div>
     
     <div id="info-box">Sayfa Yüklendi. Önizlemedesiniz. AR için sağ alt butona basın.</div>
-    
-    <button id="ios-ar-btn" onclick="launchIOSAR()">AR ile Gör</button>
+
+    <button id="ios-ar-btn" onclick="triggerAppleAR()">🍎 AR'da Gör</button>
+    <model-viewer id="ghost-viewer" ar ar-modes="quick-look" src=""></model-viewer>
 
     <a-scene 
         webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #ui-overlay;"
@@ -135,19 +148,17 @@
         ar-hit-test-custom>
         
         <a-assets>
-            <a-asset-item id="glbModel" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model.glb"></a-asset-item>
-            <a-asset-item id="glbModel2" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model1.glb"></a-asset-item>
-            <a-asset-item id="glbModel3" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model2.glb"></a-asset-item>
+            <a-asset-item id="glbModel" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model1.glb"></a-asset-item>
         </a-assets>
-        
+
         <a-entity camera look-controls position="0 1.6 0"></a-entity>
 
         <a-light type="ambient" color="#ffffff" intensity="0.5"></a-light>
         <a-light type="directional" position="1 2 1" color="#ffffff" intensity="0.7"></a-light>
 
         <a-entity id="model1" gltf-model="#glbModel" mobile-lit-model visible="false" scale="0.3 0.3 0.3"></a-entity>
-        <a-entity id="model2" gltf-model="#glbModel2" mobile-lit-model visible="false" scale="0.3 0.3 0.3"></a-entity>
-        <a-entity id="model3" gltf-model="#glbModel3" mobile-lit-model visible="false" scale="0.3 0.3 0.3"></a-entity>
+        <a-entity id="model2" gltf-model="#glbModel" mobile-lit-model visible="false" scale="0.3 0.3 0.3"></a-entity>
+        <a-entity id="model3" gltf-model="#glbModel" mobile-lit-model visible="false" scale="0.3 0.3 0.3"></a-entity>
 
         <a-entity id="reticle" visible="false">
             <a-ring color="#000000" radius-inner="0.08" radius-outer="0.12" rotation="-90 0 0"></a-ring>
@@ -159,33 +170,34 @@
         let selectedModelId = 1;
         const infoBox = document.getElementById('info-box');
         
-        // iOS Cihaz Tespiti
+        // --- APPLE (iOS) CİHAZ TESPİTİ ---
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const ghostViewer = document.getElementById('ghost-viewer');
 
         document.addEventListener("DOMContentLoaded", () => {
             if (isIOS) {
+                // Eğer cihaz Apple ise özel butonu göster
                 document.getElementById('ios-ar-btn').style.display = 'block';
-                infoBox.innerText = "Önizlemedesiniz. AR için 'AR ile Gör'e basın.";
+                // İlk açılışta 1. modelin linkini gizli viewera yükle ki hazırda beklesin
+                updateGhostViewer(1);
             }
         });
 
-        // iOS İçin Dinamik AR Tetikleyici
-        window.launchIOSAR = function() {
-            // Aktif modelin GLB linkini bul ve uzantısını dinamik olarak usdz yap
-            let currentAssetId = document.getElementById('model' + selectedModelId).getAttribute('gltf-model').replace('#', '');
+        // Modelin linkini arka plandaki gizli çeviriciye ileten fonksiyon
+        function updateGhostViewer(id) {
+            let currentAssetId = document.getElementById('model' + id).getAttribute('gltf-model').replace('#', '');
             let glbUrl = document.getElementById(currentAssetId).getAttribute('src');
-            let usdzUrl = glbUrl.replace('.glb', '.usdz');
+            ghostViewer.src = glbUrl; // Linki arka planda yüklüyor ve dönüştürmeye hazırlıyor
+        }
 
-            // Arka planda Apple'ın AR Quick Look sistemine gönder
-            let a = document.createElement('a');
-            a.setAttribute('rel', 'ar');
-            a.setAttribute('href', usdzUrl);
-            a.appendChild(document.createElement('img')); 
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        // Apple Butonuna basıldığında AR'ı tetikleyen fonksiyon
+        window.triggerAppleAR = function() {
+            if (ghostViewer.src) {
+                ghostViewer.activateAR(); // Model-viewer'ın kendi AR tetikleyicisini çalıştırır
+            }
         };
 
+        // --- DOKUNMATİK KONTROLLER VE A-FRAME SİSTEMİ ---
         let touchState = {
             scaling: false,
             rotating: false,
@@ -201,14 +213,13 @@
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
             document.getElementById('btn' + id).classList.add('active');
             
-            if (isIOS) {
+            if(isIOS) {
                 infoBox.innerText = "Model " + id + " Seçildi. AR'da görmek için butona basın.";
+                updateGhostViewer(id); // Apple ise arka plandaki modeli de yenile
             } else {
                 infoBox.innerText = "Model " + id + " Seçildi. Zemini tarayıp dokunun.";
             }
         };
-
-        // --- DOKUNMATİK VE AR-HİT TEST KONTROLLERİ (HİÇ DEĞİŞTİRİLMEDİ) ---
 
         window.addEventListener('touchstart', (e) => {
             if(e.target.closest('#ui-overlay') || e.target.closest('#ios-ar-btn')) return; 
