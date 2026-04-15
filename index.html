@@ -10,19 +10,20 @@
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #f0f0f0; }
 
-        /* Arayüz Konteynırı - Sayfanın en altına sabitlendi */
+        /* Arayüz Konteynırı - Tüm ekranı kaplar, içindekileri en alta iter */
         #ui-overlay {
             position: fixed; 
-            bottom: 20px; /* Sayfanın en altına yaklaştırıldı */
-            padding-bottom: env(safe-area-inset-bottom);
-            left: 50%;
-            transform: translateX(-50%);
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             flex-direction: row;
             justify-content: center;
-            align-items: center;
-            gap: 15px; /* Butonlar arası boşluk */
-            width: max-content;
+            align-items: flex-end; 
+            padding-bottom: 40px; 
+            box-sizing: border-box;
+            gap: 15px; 
             z-index: 9999;
             pointer-events: none;
         }
@@ -31,12 +32,12 @@
         .btn {
             background: #ffffff; 
             border: 2px solid #000000; 
-            width: 35px; /* Yuvarlak olması için genişlik ve yükseklik eşit */
+            width: 35px; 
             height: 35px;
-            border-radius: 50%; /* Tam yuvarlak yapan kısım */
-            padding: 0; /* İç boşluğu sıfırladık */
+            border-radius: 50%; 
+            padding: 0; 
             cursor: pointer;
-            pointer-events: auto;
+            pointer-events: auto; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             flex: 0 0 auto;
             transition: all 0.2s ease;
@@ -44,7 +45,6 @@
             -webkit-user-select: none;
         }
 
-        /* Seçili olan buton siyah arka plan olsun ve hafif büyüsün */
         .btn.active {
             background: #000000;
             transform: scale(1.15); 
@@ -78,11 +78,12 @@
         <button id="btn2" class="btn" onclick="selectModel(2)"></button>
         <button id="btn3" class="btn" onclick="selectModel(3)"></button>
     </div>
+    
     <div id="info-box">Sayfa Yüklendi. Önizlemedesiniz. AR için sağ alt butona basın.</div>
 
     <a-scene 
         webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #ui-overlay;"
-        renderer="colorManagement: true; alpha: true; antialias: true; physicallyCorrectLights: true;"
+        renderer="colorManagement: true; alpha: true; antialias: true;"
         ar-hit-test-custom>
 
         <a-assets>
@@ -91,8 +92,7 @@
 
         <a-entity camera look-controls position="0 1.6 0"></a-entity>
 
-        <a-entity light="type: ambient; intensity: 0.9;"></a-entity>
-        <a-entity light="type: directional; intensity: 0.6; castShadow: false;" position="1 4 2"></a-entity>
+        <a-entity light="type: ambient; color: #ffffff; intensity: 1.5;"></a-entity>
 
         <a-entity id="model1" gltf-model="#glbModel" visible="false" scale="0.3 0.3 0.3"></a-entity>
         <a-entity id="model2" gltf-model="#glbModel" visible="false" scale="0.3 0.3 0.3"></a-entity>
@@ -108,7 +108,6 @@
         let selectedModelId = 1;
         const infoBox = document.getElementById('info-box');
 
-        // Model Seçim Fonksiyonu
         window.selectModel = function(id) {
             selectedModelId = id;
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
@@ -116,7 +115,6 @@
             infoBox.innerText = "Model " + id + " Seçildi. Zemini tarayıp dokunun.";
         };
 
-        // Geliştirilmiş Zemin Tarama (Hit-Test) Bileşeni
         AFRAME.registerComponent('ar-hit-test-custom', {
             init: function () {
                 this.xrHitTestSource = null;
@@ -124,7 +122,6 @@
                 this.refSpace = null;
                 this.reticle = document.getElementById('reticle');
 
-                // AR Oturumu Başladığında
                 this.el.addEventListener('enter-vr', () => {
                     if (this.el.is('ar-mode')) {
                         infoBox.innerText = "Kamera açıldı! Zemini tarayın...";
@@ -132,7 +129,6 @@
                         
                         let session = this.el.sceneEl.renderer.xr.getSession();
                         
-                        // Zemin algılama motorunu başlat
                         session.requestReferenceSpace('viewer').then((space) => {
                             this.viewerSpace = space;
                             session.requestHitTestSource({ space: this.viewerSpace }).then((source) => {
@@ -144,13 +140,11 @@
                             this.refSpace = space;
                         });
 
-                        // Ekrana tıklandığında seçili modeli yerleştir
                         session.addEventListener('select', (event) => {
                             if (this.reticle.getAttribute('visible')) {
                                 const activeModel = document.getElementById('model' + selectedModelId);
                                 const newPosition = this.reticle.getAttribute('position');
                                 
-                                // Modeli reticle'ın olduğu yere ışınla ve görünür yap
                                 activeModel.setAttribute('position', newPosition);
                                 activeModel.setAttribute('visible', 'true');
                                 
@@ -161,7 +155,6 @@
                 });
             },
             tick: function () {
-                // Her karede zemini taramaya devam et
                 if (!this.el.is('ar-mode') || !this.xrHitTestSource || !this.refSpace) return;
                 
                 let frame = this.el.sceneEl.frame; 
@@ -169,7 +162,6 @@
 
                 let hitTestResults = frame.getHitTestResults(this.xrHitTestSource);
                 
-                // Zemin bulunursa halkayı (reticle) göster
                 if (hitTestResults.length > 0) {
                     let pose = hitTestResults[0].getPose(this.refSpace);
                     this.reticle.setAttribute('position', pose.transform.position);
