@@ -10,7 +10,7 @@
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #f0f0f0; }
 
-        /* Arayüz Konteynırı - Tüm ekranı kaplar, içindekileri en alta iter */
+        /* Arayüz Konteynırı */
         #ui-overlay {
             position: fixed; 
             top: 0;
@@ -28,7 +28,7 @@
             pointer-events: none;
         }
 
-        /* Ufak, Yuvarlak ve Beyaz Butonlar */
+        /* Butonlar */
         .btn {
             background: #ffffff; 
             border: 2px solid #000000; 
@@ -69,6 +69,33 @@
             pointer-events: none;
         }
     </style>
+
+    <script>
+        // Modeli "Işıksız" (Shadeless/Basic) hale getiren özel bileşen
+        AFRAME.registerComponent('unlit-model', {
+            init: function () {
+                this.el.addEventListener('model-loaded', () => {
+                    const obj = this.el.getObject3D('mesh');
+                    if (!obj) return;
+                    
+                    obj.traverse((node) => {
+                        if (node.isMesh && node.material) {
+                            // Mevcut materyalin dokusunu (map) ve rengini alıp, ışıktan etkilenmeyen materyale kopyalıyoruz
+                            const newMat = new THREE.MeshBasicMaterial({
+                                map: node.material.map,
+                                color: node.material.color,
+                                transparent: node.material.transparent,
+                                opacity: node.material.opacity,
+                                alphaTest: node.material.alphaTest
+                            });
+                            node.material.dispose(); // Eski materyali hafızadan temizle
+                            node.material = newMat;  // Yeni ışıksız materyali uygula
+                        }
+                    });
+                });
+            }
+        });
+    </script>
 </head>
 
 <body>
@@ -83,20 +110,17 @@
 
     <a-scene 
         webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #ui-overlay;"
-        renderer="colorManagement: true; alpha: true; antialias: true;"
+        renderer="colorManagement: true; alpha: true; antialias: false;" 
         ar-hit-test-custom>
-
         <a-assets>
             <a-asset-item id="glbModel" src="https://cdn.jsdelivr.net/gh/dekoratordt-byte/cokluar@main/model1.glb"></a-asset-item>
         </a-assets>
 
         <a-entity camera look-controls position="0 1.6 0"></a-entity>
 
-        <a-entity light="type: ambient; color: #ffffff; intensity: 1.5;"></a-entity>
-
-        <a-entity id="model1" gltf-model="#glbModel" visible="false" scale="0.3 0.3 0.3"></a-entity>
-        <a-entity id="model2" gltf-model="#glbModel" visible="false" scale="0.3 0.3 0.3"></a-entity>
-        <a-entity id="model3" gltf-model="#glbModel" visible="false" scale="0.3 0.3 0.3"></a-entity>
+        <a-entity id="model1" gltf-model="#glbModel" unlit-model visible="false" scale="0.3 0.3 0.3"></a-entity>
+        <a-entity id="model2" gltf-model="#glbModel" unlit-model visible="false" scale="0.3 0.3 0.3"></a-entity>
+        <a-entity id="model3" gltf-model="#glbModel" unlit-model visible="false" scale="0.3 0.3 0.3"></a-entity>
 
         <a-entity id="reticle" visible="false">
             <a-ring color="#000000" radius-inner="0.08" radius-outer="0.12" rotation="-90 0 0"></a-ring>
