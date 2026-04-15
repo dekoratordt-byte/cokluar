@@ -80,7 +80,6 @@
                     
                     obj.traverse((node) => {
                         if (node.isMesh && node.material) {
-                            // Mevcut materyalin dokusunu (map) ve rengini alıp, ışıktan etkilenmeyen materyale kopyalıyoruz
                             const newMat = new THREE.MeshBasicMaterial({
                                 map: node.material.map,
                                 color: node.material.color,
@@ -88,8 +87,8 @@
                                 opacity: node.material.opacity,
                                 alphaTest: node.material.alphaTest
                             });
-                            node.material.dispose(); // Eski materyali hafızadan temizle
-                            node.material = newMat;  // Yeni ışıksız materyali uygula
+                            node.material.dispose(); 
+                            node.material = newMat;  
                         }
                     });
                 });
@@ -132,12 +131,93 @@
         let selectedModelId = 1;
         const infoBox = document.getElementById('info-box');
 
+        // --- YENİ: MANİPÜLASYON (Scale & Rotate) DEĞİŞKENLERİ ---
+        let touchState = {
+            scaling: false,
+            rotating: false,
+            initialDistance: 0,
+            initialScale: {x: 0.3, y: 0.3, z: 0.3},
+            lastX: 0
+        };
+        // Döndürme veya büyütme yapılıyorsa modelin yerini zıplatmayı engellemek için bayrak
+        let isManipulating = false; 
+        // --------------------------------------------------------
+
         window.selectModel = function(id) {
             selectedModelId = id;
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
             document.getElementById('btn' + id).classList.add('active');
             infoBox.innerText = "Model " + id + " Seçildi. Zemini tarayıp dokunun.";
         };
+
+        // --- YENİ: DOKUNMATİK EKRAN GESTURE DİNLEYİCİLERİ ---
+        window.addEventListener('touchstart', (e) => {
+            if(e.target.closest('#ui-overlay')) return; // Butonlara basılıyorsa yoksay
+
+            const activeModel = document.getElementById('model' + selectedModelId);
+            let isVisible = activeModel.getAttribute('visible');
+            if (!isVisible || isVisible === 'false') return; // Model ekranda yoksa işlem yapma
+
+            if (e.touches.length === 2) {
+                // İki parmak: Scale
+                touchState.scaling = true;
+                touchState.rotating = false;
+                let dx = e.touches[0].pageX - e.touches[1].pageX;
+                let dy = e.touches[0].pageY - e.touches[1].pageY;
+                touchState.initialDistance = Math.sqrt(dx * dx + dy * dy);
+                touchState.initialScale = { ...activeModel.getAttribute('scale') }; 
+            } else if (e.touches.length === 1) {
+                // Tek parmak: Rotate
+                touchState.rotating = true;
+                touchState.scaling = false;
+                touchState.lastX = e.touches[0].pageX;
+            }
+        }, {passive: false});
+
+        window.addEventListener('touchmove', (e) => {
+            if(e.target.closest('#ui-overlay')) return;
+
+            const activeModel = document.getElementById('model' + selectedModelId);
+            let isVisible = activeModel.getAttribute('visible');
+            if (!isVisible || isVisible === 'false') return;
+
+            if (touchState.scaling && e.touches.length === 2) {
+                isManipulating = true; // Ölçeklendirme yapıldığını belirt
+                let dx = e.touches[0].pageX - e.touches[1].pageX;
+                let dy = e.touches[0].pageY - e.touches[1].pageY;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                let scaleFactor = distance / touchState.initialDistance;
+
+                let newScaleX = touchState.initialScale.x * scaleFactor;
+                let newScaleY = touchState.initialScale.y * scaleFactor;
+                let newScaleZ = touchState.initialScale.z * scaleFactor;
+
+                // Modelin aşırı büyümesini/küçülmesini engellemek için (isteğe bağlı güvenlik)
+                if(newScaleX > 0.05 && newScaleX < 5.0) {
+                    activeModel.setAttribute('scale', `${newScaleX} ${newScaleY} ${newScaleZ}`);
+                }
+            } else if (touchState.rotating && e.touches.length === 1) {
+                let deltaX = e.touches[0].pageX - touchState.lastX;
+                
+                // Sadece belirgin parmak kaydırmalarını döndürme kabul et (ufak titremeleri filtrele)
+                if (Math.abs(deltaX) > 2) { 
+                    isManipulating = true; // Döndürme yapıldığını belirt
+                    let currentRot = activeModel.getAttribute('rotation');
+                    activeModel.setAttribute('rotation', `${currentRot.x} ${currentRot.y + deltaX * 0.8} ${currentRot.z}`);
+                    touchState.lastX = e.touches[0].pageX;
+                }
+            }
+        }, {passive: false});
+
+        window.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) touchState.scaling = false;
+            if (e.touches.length === 0) {
+                touchState.rotating = false;
+                // Parmağı çektikten hemen sonra "select" tetiklenebilir, manipülasyonu 100ms gecikmeli sıfırla
+                setTimeout(() => { isManipulating = false; }, 100);
+            }
+        });
+        // ----------------------------------------------------
 
         AFRAME.registerComponent('ar-hit-test-custom', {
             init: function () {
@@ -165,6 +245,9 @@
                         });
 
                         session.addEventListener('select', (event) => {
+                            // YENİ EKLENDİ: Model döndürülüyor/büyütülüyorsa bu dokunuşu yerleştirme olarak algılama!
+                            if (isManipulating) return;
+
                             if (this.reticle.getAttribute('visible')) {
                                 const activeModel = document.getElementById('model' + selectedModelId);
                                 const newPosition = this.reticle.getAttribute('position');
